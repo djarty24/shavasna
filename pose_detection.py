@@ -6,10 +6,12 @@ from scipy.spatial.distance import euclidean
 import time
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+# setting up the mediapipe
 mp_pose = mp.solutions.pose
 pose = mp_pose.Pose()
 mp_drawing = mp.solutions.drawing_utils
 
+# dictionary of pose options
 pose_options = {
     'tree': 'yoga_poses/train/tree',
     'chair': 'yoga_poses/train/chair',
@@ -21,6 +23,7 @@ pose_options = {
     'no_pose': 'yoga_poses/train/no_pose'
 }
 
+# processes an image to extract the key points and saves their coordinates in a list
 def extract_keypoints(image):
     results = pose.process(image)
     if results.pose_landmarks:
@@ -29,6 +32,7 @@ def extract_keypoints(image):
         return keypoints
     return None
 
+# loads images , extracts keypoints, and stores them
 def load_reference_keypoints(folder_path):
     reference_keypoints = []
     for filename in os.listdir(folder_path):
@@ -41,8 +45,10 @@ def load_reference_keypoints(folder_path):
                 reference_keypoints.append(keypoints)
     return reference_keypoints
 
+# stores reference keypoints for each pose
 reference_keypoints_dict = {pose: load_reference_keypoints(path) for pose, path in pose_options.items()}
 
+# calculates the similarity between the user's keypoints and reference keypoints
 def calculate_similarity(user_keypoints, reference_keypoints):
     similarities = []
     for ref in reference_keypoints:
@@ -51,11 +57,15 @@ def calculate_similarity(user_keypoints, reference_keypoints):
             similarities.append(dist)
     return min(similarities) if similarities else float('inf')
 
+# captures video from the webcam
+# processes each frame to detect the user's pose
+# compare it to reference keypoints
+# provides feedback on the pose accuracy
 def start_pose_detection(selected_pose):
     cap = cv2.VideoCapture(0)
     pose_start_time = None
     pose_held_time = 0
-    similarity_threshold = 0.05
+    similarity_threshold = 0.1
 
     while cap.isOpened():
         ret, frame = cap.read()
@@ -96,7 +106,7 @@ def start_pose_detection(selected_pose):
     cap.release()
     cv2.destroyAllWindows()
 
-class YogaPoseApp(QtWidgets.QWidget):
+class YogaPoseApp(QtWidgets.QWidget): #  GUI
     def __init__(self):
         super().__init__()
 
@@ -143,6 +153,7 @@ class YogaPoseApp(QtWidgets.QWidget):
         selected_pose = self.pose_combo.currentText()
         start_pose_detection(selected_pose)
 
+# initializes and runs Qt
 if __name__ == '__main__':
     import sys
     app = QtWidgets.QApplication(sys.argv)
